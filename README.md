@@ -1,11 +1,11 @@
-# git-context
+# gitctx
 
 A TypeScript CLI tool that analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis.
 
 ## Installation
 
 ```bash
-npm install -g git-context
+npm install -g gitctx
 ```
 
 Or run locally:
@@ -20,21 +20,24 @@ node dist/index.js
 
 ```bash
 # Default: compare main...HEAD with JSON output
-git-context
+gitctx
 
 # Human-readable summary
-git-context --explain
+gitctx --explain
+
+# Token-optimized output for LLMs (~80% smaller)
+gitctx --toon
 
 # Custom range
-git-context HEAD~5..HEAD
-git-context main...feature-branch
+gitctx HEAD~5..HEAD
+gitctx main...feature-branch
 
 # Using base/compare flags
-git-context -b develop -c feature/auth
+gitctx -b develop -c feature/auth
 
 # Write to file
-git-context --output context.json
-git-context -e -o summary.txt
+gitctx --output context.json
+gitctx -e -o summary.txt
 ```
 
 ## Options
@@ -43,6 +46,7 @@ git-context -e -o summary.txt
 |--------|-------|-------------|
 | `--explain` | `-e` | Output human-readable summary |
 | `--json` | `-j` | Output as JSON (default) |
+| `--toon` | `-t` | Output token-optimized format for LLMs |
 | `--base <branch>` | `-b` | Base branch for comparison |
 | `--compare <branch>` | `-c` | Compare branch (default: HEAD) |
 | `--output <file>` | `-o` | Write output to file |
@@ -106,6 +110,19 @@ Analyzes commit messages to determine the primary goal:
 - Groups commits by keyword clustering
 - Identifies themes: Feature, Bug Fix, Refactor, Security, etc.
 - Confidence scoring: high (80%+), medium (50-80%), low (<50%)
+
+### 4. TOON Output (Token Optimized Object Notation)
+
+A compact output format designed for LLM context windows:
+
+- ~80% smaller than JSON output
+- Short keys: `a`=analysis, `r`=risks, `i`=intent, `cm`=commits, `fc`=fileChanges
+- Omits empty arrays and null values
+- No whitespace - single line JSON
+
+```bash
+gitctx main...feature-branch --toon
+```
 
 ## Output Examples
 
@@ -187,28 +204,34 @@ Analyzes commit messages to determine the primary goal:
 }
 ```
 
+### TOON Output (`--toon`)
+
+```json
+{"a":{"bb":"main","cb":"feature-auth","st":{"ins":342,"del":28,"fc":12,"cc":5},"cm":[{"sh":"e95551f","msg":"Add auth middleware","au":"Said"}],"fc":[{"p":"src/auth/middleware.ts","st":"A","ins":28}]},"r":{"sec":true,"sr":[{"p":"src/auth/middleware.ts","rs":["JWT handling"]}]},"i":{"th":"Feature Addition","kw":["add","auth"],"cf":"H"}}
+```
+
 ## Use Cases
 
 ### Code Review Preparation
 ```bash
-git-context origin/main...HEAD --explain
+gitctx origin/main...HEAD --explain
 ```
 
 ### LLM Context Generation
 ```bash
-git-context --output context.json
+gitctx --toon --output context.json
 # Feed context.json to your LLM for automated review
 ```
 
 ### CI/CD Risk Assessment
 ```bash
-git-context -b main -c $BRANCH_NAME -o /tmp/risk.json
+gitctx -b main -c $BRANCH_NAME -o /tmp/risk.json
 # Parse risk.json to gate deployments
 ```
 
 ### PR Description Generation
 ```bash
-git-context HEAD~10..HEAD --explain > pr-context.txt
+gitctx HEAD~10..HEAD --explain > pr-context.txt
 ```
 
 ## Development

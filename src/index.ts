@@ -11,7 +11,7 @@ import { GitContextResult, CLIOptions } from './types';
 const program = new Command();
 
 program
-  .name('git-context')
+  .name('gitctx')
   .description('Analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis')
   .version('1.0.0')
   .argument('[range]', 'Git revision range (e.g., main...feature-x, HEAD~5..HEAD)', 'main...HEAD')

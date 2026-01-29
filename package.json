@@ -1,21 +1,31 @@
 {
-  "name": "git-context",
+  "name": "gitctx",
   "version": "1.0.0",
   "description": "Analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis",
   "main": "dist/index.js",
   "bin": {
-    "git-context": "dist/index.js"
+    "gitctx": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["git", "cli", "context", "llm", "diff", "analysis"],
-  "author": "",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md"
+  ],
+  "keywords": ["git", "cli", "context", "llm", "diff", "analysis", "toon"],
+  "author": "Sai'd Al-Zain",
   "license": "MIT",
   "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Said-MZ/git_context.git"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"

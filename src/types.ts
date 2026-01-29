@@ -111,5 +111,6 @@ export interface CLIOptions {
   compare?: string;
   explain?: boolean;
   json?: boolean;
+  toon?: boolean;
   output?: string;
 }

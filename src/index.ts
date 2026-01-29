@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs';
 import { GitAnalyzer } from './git/analyzer';
 import { analyzeRisks } from './risk/detector';
 import { deriveChangeIntent } from './intent/derivation';
-import { formatJson, formatExplain } from './output/formatter';
+import { formatJson, formatExplain, formatToon } from './output/formatter';
 import { GitContextResult, CLIOptions } from './types';
 
 const program = new Command();
@@ -19,6 +19,7 @@ program
   .option('-c, --compare <branch>', 'Compare branch (overrides range)', 'HEAD')
   .option('-e, --explain', 'Output human-readable summary')
   .option('-j, --json', 'Output as JSON (default)')
+  .option('-t, --toon', 'Output token-optimized format for LLMs')
   .option('-o, --output <file>', 'Write output to file')
   .action((range: string, options: CLIOptions) => {
     try {
@@ -65,6 +66,8 @@ program
       let output: string;
       if (options.explain) {
         output = formatExplain(result);
+      } else if (options.toon) {
+        output = formatToon(result);
       } else {
         output = formatJson(result);
       }

@@ -1,6 +1,6 @@
 {
   "name": "gitctx",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis",
   "main": "dist/index.js",
   "bin": {
@@ -18,7 +18,15 @@
     "dist/**/*.d.ts",
     "README.md"
   ],
-  "keywords": ["git", "cli", "context", "llm", "diff", "analysis", "toon"],
+  "keywords": [
+    "git",
+    "cli",
+    "context",
+    "llm",
+    "diff",
+    "analysis",
+    "toon"
+  ],
   "author": "Sai'd Al-Zain",
   "license": "MIT",
   "type": "commonjs",
@@ -31,6 +39,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@toon-format/toon": "^2.1.0",
     "chalk": "^5.0.0",
     "commander": "^13.0.0"
   }

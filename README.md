@@ -111,14 +111,14 @@ Analyzes commit messages to determine the primary goal:
 - Identifies themes: Feature, Bug Fix, Refactor, Security, etc.
 - Confidence scoring: high (80%+), medium (50-80%), low (<50%)
 
-### 4. TOON Output (Token Optimized Object Notation)
+### 4. TOON Output ([Token-Oriented Object Notation](https://toonformat.dev))
 
-A compact output format designed for LLM context windows:
+Powered by [`@toon-format/toon`](https://github.com/toon-format/toon):
 
-- ~80% smaller than JSON output
-- Short keys: `a`=analysis, `r`=risks, `i`=intent, `cm`=commits, `fc`=fileChanges
-- Omits empty arrays and null values
-- No whitespace - single line JSON
+- ~40% fewer tokens than JSON with better LLM accuracy
+- YAML-like indentation for nested structures
+- CSV-style tabular layout for uniform arrays
+- Lossless, round-trippable representation of JSON
 
 ```bash
 gitctx main...feature-branch --toon
@@ -206,8 +206,30 @@ gitctx main...feature-branch --toon
 
 ### TOON Output (`--toon`)
 
-```json
-{"a":{"bb":"main","cb":"feature-auth","st":{"ins":342,"del":28,"fc":12,"cc":5},"cm":[{"sh":"e95551f","msg":"Add auth middleware","au":"Said"}],"fc":[{"p":"src/auth/middleware.ts","st":"A","ins":28}]},"r":{"sec":true,"sr":[{"p":"src/auth/middleware.ts","rs":["JWT handling"]}]},"i":{"th":"Feature Addition","kw":["add","auth"],"cf":"H"}}
+```toon
+analysis:
+  baseBranch: main
+  compareBranch: feature-auth
+  commits[5]{sha,shortSha,message,author,authorEmail,timestamp,date}:
+    abc123...,abc123,Add auth middleware,Alice,alice@example.com,2026-01-28T18:00:00Z,...
+  fileChanges[2]{path,status,oldPath,insertions,deletions}:
+    src/auth/middleware.ts,added,null,28,0
+    src/auth/login.ts,added,null,45,0
+  stats:
+    totalInsertions: 342
+    totalDeletions: 28
+    filesChanged: 12
+    commitsCount: 5
+risks:
+  securitySensitive: true
+  securityRisks[1]:
+    - file: src/auth/middleware.ts
+      reasons[2]: JWT handling,Permission check modification
+  ...
+intent:
+  primaryTheme: "Feature Addition: authentication"
+  keywords[3]: add,feature,implement
+  confidence: high
 ```
 
 ## Use Cases

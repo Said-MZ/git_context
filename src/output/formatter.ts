@@ -1,4 +1,5 @@
 import { GitContextResult } from '../types';
+import { encode } from '@toon-format/toon';
 
 export function formatJson(result: GitContextResult): string {
   return JSON.stringify(result, null, 2);
@@ -181,118 +182,12 @@ export function formatExplain(result: GitContextResult): string {
 }
 
 /**
- * Token Optimized Object Notation (TOON) format
- * Designed for efficient LLM context with ~50% token reduction
+ * Token-Oriented Object Notation (TOON) format
+ * https://toonformat.dev
  *
- * Key mappings:
- * a=analysis, cm=commits, fc=fileChanges, r=risks, i=intent
- * bb=baseBranch, cb=compareBranch, st=stats, sh=shortSha
- * msg=message, au=author, p=path, ins=insertions, del=deletions
- * sr=securityRisks, dr=dataLayerRisks, ac=apiChanges, bc=breakingChanges
- * dc=dependencyChanges, th=theme, kw=keywords, cf=confidence
+ * TOON combines YAML-like indentation with CSV-style tabular arrays
+ * for ~40% fewer tokens with better LLM accuracy than JSON.
  */
 export function formatToon(result: GitContextResult): string {
-  const { analysis, risks, intent } = result;
-
-  // Compress commits - keep essential info only
-  const cm = analysis.commits.map(c => ({
-    sh: c.shortSha,
-    msg: c.message.split('\n')[0].slice(0, 80),
-    au: c.author.split(' ')[0]
-  }));
-
-  // Compress file changes - omit zero values
-  const fc = analysis.fileChanges.map(f => {
-    const entry: Record<string, unknown> = {
-      p: f.path,
-      st: f.status[0].toUpperCase() // A/M/D/R
-    };
-    if (f.insertions) entry.ins = f.insertions;
-    if (f.deletions) entry.del = f.deletions;
-    if (f.oldPath) entry.op = f.oldPath;
-    return entry;
-  });
-
-  // Compress stats
-  const st = {
-    ins: analysis.stats.totalInsertions,
-    del: analysis.stats.totalDeletions,
-    fc: analysis.stats.filesChanged,
-    cc: analysis.stats.commitsCount
-  };
-
-  // Compress risks - only include if present
-  const r: Record<string, unknown> = {};
-
-  if (risks.securitySensitive) {
-    r.sec = true;
-    r.sr = risks.securityRisks.map(s => ({
-      p: s.file,
-      rs: s.reasons
-    }));
-  }
-
-  if (risks.dataLayerAffected) {
-    r.dl = true;
-    r.dr = risks.dataLayerRisks.map(d => ({
-      p: d.file,
-      tb: d.affectedTables,
-      op: d.operations
-    }));
-  }
-
-  if (risks.dependencyChanges.length > 0) {
-    r.dc = risks.dependencyChanges.map(d => ({
-      n: d.name,
-      t: d.type[0], // a/r/u/d
-      nv: d.newVersion,
-      ov: d.oldVersion,
-      bt: d.versionBumpType?.[0] // M/m/p
-    }));
-  }
-
-  if (risks.apiChanges.length > 0) {
-    r.ac = risks.apiChanges.map(a => ({
-      p: a.file,
-      ep: a.endpoint,
-      m: a.method,
-      t: a.changeType[0], // a/m/r
-      d: a.description
-    }));
-  }
-
-  if (risks.breakingChanges.length > 0) {
-    r.bc = risks.breakingChanges.map(b => ({
-      p: b.file,
-      t: b.type,
-      d: b.description
-    }));
-  }
-
-  // Compress intent
-  const i = {
-    th: intent.primaryTheme,
-    kw: intent.keywords,
-    cf: intent.confidence[0].toUpperCase(), // H/M/L
-    cg: intent.commitGroups.map(g => ({
-      th: g.theme,
-      cm: g.commits
-    }))
-  };
-
-  // Build final TOON object
-  const toon = {
-    a: {
-      bb: analysis.baseBranch,
-      cb: analysis.compareBranch,
-      st,
-      cm,
-      fc
-    },
-    r,
-    i
-  };
-
-  // Return compact JSON (no whitespace)
-  return JSON.stringify(toon);
+  return encode(result);
 }

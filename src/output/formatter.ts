@@ -42,100 +42,102 @@ export function formatExplain(result: GitContextResult): string {
     lines.push('');
   }
 
-  // Risk Analysis
-  lines.push('⚠️  RISK ANALYSIS');
-  lines.push('───────────────────────────────────────────────────────────────');
+  // Risk Analysis (only when --risk flag is used)
+  if (risks) {
+    lines.push('⚠️  RISK ANALYSIS');
+    lines.push('───────────────────────────────────────────────────────────────');
 
-  // Security
-  if (risks.securitySensitive) {
-    lines.push('');
-    lines.push('  🔐 SECURITY SENSITIVE: YES');
-    for (const risk of risks.securityRisks) {
-      lines.push(`    • ${risk.file}`);
-      for (const reason of risk.reasons) {
-        lines.push(`      └─ ${reason}`);
+    // Security
+    if (risks.securitySensitive) {
+      lines.push('');
+      lines.push('  🔐 SECURITY SENSITIVE: YES');
+      for (const risk of risks.securityRisks) {
+        lines.push(`    • ${risk.file}`);
+        for (const reason of risk.reasons) {
+          lines.push(`      └─ ${reason}`);
+        }
       }
+    } else {
+      lines.push('  🔐 Security sensitive: No');
     }
-  } else {
-    lines.push('  🔐 Security sensitive: No');
-  }
 
-  // Data Layer
-  if (risks.dataLayerAffected) {
-    lines.push('');
-    lines.push('  💾 DATA LAYER AFFECTED: YES');
-    for (const risk of risks.dataLayerRisks) {
-      lines.push(`    • ${risk.file}`);
-      if (risk.affectedTables.length > 0) {
-        lines.push(`      └─ Tables: ${risk.affectedTables.join(', ')}`);
+    // Data Layer
+    if (risks.dataLayerAffected) {
+      lines.push('');
+      lines.push('  💾 DATA LAYER AFFECTED: YES');
+      for (const risk of risks.dataLayerRisks) {
+        lines.push(`    • ${risk.file}`);
+        if (risk.affectedTables.length > 0) {
+          lines.push(`      └─ Tables: ${risk.affectedTables.join(', ')}`);
+        }
+        if (risk.operations.length > 0) {
+          lines.push(`      └─ Operations: ${risk.operations.join(', ')}`);
+        }
       }
-      if (risk.operations.length > 0) {
-        lines.push(`      └─ Operations: ${risk.operations.join(', ')}`);
+    } else {
+      lines.push('  💾 Data layer affected: No');
+    }
+
+    // Dependencies
+    if (risks.dependencyChanges.length > 0) {
+      lines.push('');
+      lines.push('  📦 DEPENDENCY CHANGES');
+      for (const dep of risks.dependencyChanges) {
+        let label: string;
+        switch (dep.type) {
+          case 'added':
+            label = `✚ Added: ${dep.name}@${dep.newVersion}`;
+            break;
+          case 'removed':
+            label = `✖ Removed: ${dep.name}@${dep.oldVersion}`;
+            break;
+          case 'upgraded':
+            label = `↑ Upgraded: ${dep.name} ${dep.oldVersion} → ${dep.newVersion}`;
+            if (dep.versionBumpType) {
+              label += ` (${dep.versionBumpType})`;
+            }
+            break;
+          case 'downgraded':
+            label = `↓ Downgraded: ${dep.name} ${dep.oldVersion} → ${dep.newVersion}`;
+            break;
+        }
+        lines.push(`    • ${label} [${dep.packageManager}]`);
       }
+    } else {
+      lines.push('  📦 Dependency changes: None');
     }
-  } else {
-    lines.push('  💾 Data layer affected: No');
-  }
 
-  // Dependencies
-  if (risks.dependencyChanges.length > 0) {
-    lines.push('');
-    lines.push('  📦 DEPENDENCY CHANGES');
-    for (const dep of risks.dependencyChanges) {
-      let label: string;
-      switch (dep.type) {
-        case 'added':
-          label = `✚ Added: ${dep.name}@${dep.newVersion}`;
-          break;
-        case 'removed':
-          label = `✖ Removed: ${dep.name}@${dep.oldVersion}`;
-          break;
-        case 'upgraded':
-          label = `↑ Upgraded: ${dep.name} ${dep.oldVersion} → ${dep.newVersion}`;
-          if (dep.versionBumpType) {
-            label += ` (${dep.versionBumpType})`;
-          }
-          break;
-        case 'downgraded':
-          label = `↓ Downgraded: ${dep.name} ${dep.oldVersion} → ${dep.newVersion}`;
-          break;
+    // API Changes
+    if (risks.apiChanges.length > 0) {
+      lines.push('');
+      lines.push('  🔌 API SURFACE CHANGES');
+      for (const api of risks.apiChanges) {
+        const icon = api.changeType === 'added' ? '✚' : api.changeType === 'removed' ? '✖' : '✎';
+        lines.push(`    ${icon} ${api.description}`);
+        lines.push(`      └─ ${api.file}`);
       }
-      lines.push(`    • ${label} [${dep.packageManager}]`);
+    } else {
+      lines.push('  🔌 API surface changes: None');
     }
-  } else {
-    lines.push('  📦 Dependency changes: None');
-  }
 
-  // API Changes
-  if (risks.apiChanges.length > 0) {
-    lines.push('');
-    lines.push('  🔌 API SURFACE CHANGES');
-    for (const api of risks.apiChanges) {
-      const icon = api.changeType === 'added' ? '✚' : api.changeType === 'removed' ? '✖' : '✎';
-      lines.push(`    ${icon} ${api.description}`);
-      lines.push(`      └─ ${api.file}`);
-    }
-  } else {
-    lines.push('  🔌 API surface changes: None');
-  }
-
-  // Breaking Changes
-  if (risks.breakingChanges.length > 0) {
-    lines.push('');
-    lines.push('  💥 BREAKING CHANGES DETECTED');
-    for (const bc of risks.breakingChanges) {
-      lines.push(`    • ${bc.description}`);
-      lines.push(`      └─ ${bc.file}`);
-      if (bc.oldSignature && bc.newSignature) {
-        lines.push(`      └─ Before: ${bc.oldSignature}`);
-        lines.push(`      └─ After:  ${bc.newSignature}`);
+    // Breaking Changes
+    if (risks.breakingChanges.length > 0) {
+      lines.push('');
+      lines.push('  💥 BREAKING CHANGES DETECTED');
+      for (const bc of risks.breakingChanges) {
+        lines.push(`    • ${bc.description}`);
+        lines.push(`      └─ ${bc.file}`);
+        if (bc.oldSignature && bc.newSignature) {
+          lines.push(`      └─ Before: ${bc.oldSignature}`);
+          lines.push(`      └─ After:  ${bc.newSignature}`);
+        }
       }
+    } else {
+      lines.push('  💥 Breaking changes: None detected');
     }
-  } else {
-    lines.push('  💥 Breaking changes: None detected');
-  }
 
-  lines.push('');
+    lines.push('');
+  }
 
   // Commits
   lines.push('📝 COMMITS');

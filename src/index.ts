@@ -20,6 +20,7 @@ program
   .option('-e, --explain', 'Output human-readable summary')
   .option('-j, --json', 'Output as JSON (default)')
   .option('-t, --toon', 'Output token-optimized format for LLMs')
+  .option('-r, --risk', 'Enable risk analysis (security, data layer, dependencies, API, breaking changes)')
   .option('-o, --output <file>', 'Write output to file')
   .action((range: string, options: CLIOptions) => {
     try {
@@ -48,8 +49,8 @@ program
         process.exit(1);
       }
 
-      // Run risk analysis
-      const risks = analyzeRisks(gitAnalysis);
+      // Run risk analysis only when --risk flag is passed
+      const risks = options.risk ? analyzeRisks(gitAnalysis) : undefined;
 
       // Derive change intent
       const intent = deriveChangeIntent(gitAnalysis.commits);
@@ -57,7 +58,7 @@ program
       // Build result
       const result: GitContextResult = {
         analysis: gitAnalysis,
-        risks,
+        ...(risks && { risks }),
         intent,
         generatedAt: new Date().toISOString(),
       };

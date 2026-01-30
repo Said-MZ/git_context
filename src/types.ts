@@ -101,7 +101,7 @@ export interface ChangeIntent {
 
 export interface GitContextResult {
   analysis: GitAnalysis;
-  risks: RiskAnalysis;
+  risks?: RiskAnalysis;
   intent: ChangeIntent;
   generatedAt: string;
 }
@@ -112,5 +112,6 @@ export interface CLIOptions {
   explain?: boolean;
   json?: boolean;
   toon?: boolean;
+  risk?: boolean;
   output?: string;
 }

@@ -48,9 +48,7 @@ const SECURITY_CODE_PATTERNS = [
   /Authorization:/i,
   /api[_-]?key/i,
   /private[_-]?key/i,
-  /requireAuth|isAuthenticated|checkAuth/i,
-  /hasPermission|hasRole|canAccess/i,
-  /\.compare\s*\(/i,
+  /(?:password|hash|bcrypt).*\.compare\s*\(/i,
   /password.*=|=.*password/i,
 ];
 
@@ -66,8 +64,10 @@ export function detectSecurityRisks(
     const pathLower = file.path.toLowerCase();
     const reasons = new Set<string>();
 
+    // Word-boundary matching: split path into segments so "key" doesn't match "keyboard"
+    const segments = pathLower.split(/[/.\-_]/);
     for (const pattern of SECURITY_SENSITIVE_PATTERNS) {
-      if (pathLower.includes(pattern)) {
+      if (segments.includes(pattern)) {
         reasons.add(`File path contains '${pattern}'`);
       }
     }
@@ -89,25 +89,31 @@ export function detectSecurityRisks(
       }
     }
 
-    // Check for middleware changes
-    if (/middleware|interceptor|guard/i.test(hunk.file) ||
-        /app\.use\s*\(|router\.use\s*\(/i.test(allChangedLines)) {
-      reasons.add('Middleware modification detected');
-    }
+    // The following checks only apply to files already identified as security-related
+    // by path matching. This prevents flagging CRUD routes that merely call auth utilities.
+    const isSecurityFile = fileRisksMap.has(hunk.file);
 
-    // Check for login/logout logic
-    if (/login|logout|signin|signout/i.test(allChangedLines)) {
-      reasons.add('Login/logout logic modification');
-    }
+    if (isSecurityFile) {
+      // Check for middleware changes
+      if (/middleware|interceptor|guard/i.test(hunk.file) ||
+          /app\.use\s*\(|router\.use\s*\(/i.test(allChangedLines)) {
+        reasons.add('Middleware modification detected');
+      }
 
-    // Check for permission checks
-    if (/hasPermission|hasRole|can\(|ability|authorize/i.test(allChangedLines)) {
-      reasons.add('Permission check modification');
-    }
+      // Check for login/logout logic
+      if (/login|logout|signin|signout/i.test(allChangedLines)) {
+        reasons.add('Login/logout logic modification');
+      }
 
-    // Check for token handling
-    if (/accessToken|refreshToken|idToken|Bearer/i.test(allChangedLines)) {
-      reasons.add('Token handling modification');
+      // Check for permission checks
+      if (/hasPermission|hasRole|can\(|ability|authorize/i.test(allChangedLines)) {
+        reasons.add('Permission check modification');
+      }
+
+      // Check for token handling
+      if (/accessToken|refreshToken|idToken|Bearer/i.test(allChangedLines)) {
+        reasons.add('Token handling modification');
+      }
     }
 
     if (reasons.size > 0) {

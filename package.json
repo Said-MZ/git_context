@@ -1,6 +1,6 @@
 {
   "name": "gitctx",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis",
   "main": "dist/index.js",
   "bin": {

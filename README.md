@@ -1,6 +1,10 @@
 # gitctx
 
-A TypeScript CLI tool that analyzes Git branches and outputs structured, LLM-ready context with intelligent risk analysis.
+A CLI tool that extracts structured, LLM-ready context from Git branches.
+
+By default, gitctx outputs **pure facts**: commits, file changes, diffs, and stats. No opinions, no heuristics — just data straight from git.
+
+Opt in to **risk analysis** with `--risk` to get heuristic-based insights on top: security flags, data layer changes, dependency diffs, API surface changes, and breaking change detection.
 
 ## Installation
 
@@ -19,13 +23,13 @@ node dist/index.js
 ## Usage
 
 ```bash
-# Default: compare main...HEAD with JSON output
+# Default: pure facts from main...HEAD as JSON
 gitctx
 
-# Human-readable summary
+# Human-readable summary (facts only)
 gitctx --explain
 
-# Token-optimized output for LLMs (~80% smaller)
+# Token-optimized output for LLMs
 gitctx --toon
 
 # Custom range
@@ -38,6 +42,10 @@ gitctx -b develop -c feature/auth
 # Write to file
 gitctx --output context.json
 gitctx -e -o summary.txt
+
+# Enable risk analysis (heuristic insights on top of facts)
+gitctx --risk --explain
+gitctx -r -t
 ```
 
 ## Options
@@ -47,26 +55,28 @@ gitctx -e -o summary.txt
 | `--explain` | `-e` | Output human-readable summary |
 | `--json` | `-j` | Output as JSON (default) |
 | `--toon` | `-t` | Output token-optimized format for LLMs |
+| `--risk` | `-r` | Enable risk analysis (security, data layer, dependencies, API, breaking changes) |
 | `--base <branch>` | `-b` | Base branch for comparison |
 | `--compare <branch>` | `-c` | Compare branch (default: HEAD) |
 | `--output <file>` | `-o` | Write output to file |
 | `--version` | `-V` | Show version number |
 | `--help` | `-h` | Display help |
 
-## Features
+## What you get
 
-### 1. Git Analysis
-
-Extracts comprehensive information about changes:
+### Without `--risk` (default): pure facts
 
 - **Commits**: SHA, message, author, timestamp
-- **File changes**: Added, modified, deleted, renamed files with stats
+- **File changes**: Added, modified, deleted, renamed files with line counts
 - **Diff hunks**: Line-by-line changes with context
-- **Repository stats**: Total insertions, deletions, file count
+- **Stats**: Total insertions, deletions, file count
+- **Intent**: Primary theme derived from commit messages, keyword clustering
 
-### 2. Intelligent Risk Detection
+This is raw git data structured for LLM consumption. No heuristics, no guesswork.
 
-Heuristic-based risk analysis without calling any LLM:
+### With `--risk`: heuristic insights
+
+Everything above, plus:
 
 #### Security-Sensitive Detection
 Flags changes to authentication, authorization, and security-related code:
@@ -99,19 +109,11 @@ Identifies changes to public interfaces:
 #### Breaking Change Detection
 Finds potentially breaking changes:
 
-- Function signature changes
+- Function signature changes (exported functions only)
 - Removed exports
 - Renamed functions (heuristic similarity matching)
 
-### 3. Change Intent Derivation
-
-Analyzes commit messages to determine the primary goal:
-
-- Groups commits by keyword clustering
-- Identifies themes: Feature, Bug Fix, Refactor, Security, etc.
-- Confidence scoring: high (80%+), medium (50-80%), low (<50%)
-
-### 4. TOON Output ([Token-Oriented Object Notation](https://toonformat.dev))
+### TOON Output ([Token-Oriented Object Notation](https://toonformat.dev))
 
 Powered by [`@toon-format/toon`](https://github.com/toon-format/toon):
 
@@ -126,7 +128,37 @@ gitctx main...feature-branch --toon
 
 ## Output Examples
 
-### Human-Readable (`--explain`)
+### Default (`--explain`, no `--risk`)
+
+```
+═══════════════════════════════════════════════════════════════
+                     GIT CONTEXT ANALYSIS
+═══════════════════════════════════════════════════════════════
+
+📊 SUMMARY
+───────────────────────────────────────────────────────────────
+  Branch comparison: main → feature-auth
+  Commits: 5
+  Files changed: 12
+  Lines: +342 / -28
+
+🎯 CHANGE INTENT
+───────────────────────────────────────────────────────────────
+  Primary theme: Feature Addition: authentication
+  Confidence: HIGH
+
+📝 COMMITS
+───────────────────────────────────────────────────────────────
+  abc1234 | 1/28/2026 | Alice
+         Add auth middleware
+
+📁 FILES CHANGED
+───────────────────────────────────────────────────────────────
+  ✚ src/auth/middleware.ts (+28/-0)
+  ✚ src/auth/login.ts (+45/-0)
+```
+
+### With `--risk --explain`
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -166,9 +198,17 @@ gitctx main...feature-branch --toon
     ✚ New POST endpoint: /auth/logout
 
   💥 Breaking changes: None detected
+
+📝 COMMITS
+───────────────────────────────────────────────────────────────
+  ...
+
+📁 FILES CHANGED
+───────────────────────────────────────────────────────────────
+  ...
 ```
 
-### JSON Output
+### JSON (with `--risk`)
 
 ```json
 {
@@ -204,7 +244,9 @@ gitctx main...feature-branch --toon
 }
 ```
 
-### TOON Output (`--toon`)
+> Without `--risk`, the `risks` key is omitted entirely from the JSON output.
+
+### TOON Output (`--toon --risk`)
 
 ```toon
 analysis:
@@ -234,20 +276,20 @@ intent:
 
 ## Use Cases
 
+### LLM Context Generation
+```bash
+gitctx --toon --output context.toon
+# Pure facts, token-optimized for LLM consumption
+```
+
 ### Code Review Preparation
 ```bash
 gitctx origin/main...HEAD --explain
 ```
 
-### LLM Context Generation
+### Risk Assessment
 ```bash
-gitctx --toon --output context.json
-# Feed context.json to your LLM for automated review
-```
-
-### CI/CD Risk Assessment
-```bash
-gitctx -b main -c $BRANCH_NAME -o /tmp/risk.json
+gitctx --risk -b main -c $BRANCH_NAME -o risk.json
 # Parse risk.json to gate deployments
 ```
 
